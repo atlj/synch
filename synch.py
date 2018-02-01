@@ -16,8 +16,8 @@ class app(object):
         self.diclist=[]
         self.ip = None
         self.port = None
-        self.switch = True
-        self.switch_2 = False
+
+
     
     def tel(self,data):
         return(bytes(data, "UTF-8"))
@@ -30,7 +30,6 @@ class app(object):
                 return int(choice)
                 
     def definer(self):
-        self.switch = True
         self.listen_thread = Thread(target=self.listen)
         self.listen_thread.start()
     
