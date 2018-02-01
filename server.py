@@ -3,11 +3,6 @@ import socket, os,json,time
 from threading import Thread
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-#------TEMPRORARY------
-#                                             #
-DIR = "/sdcard/home/"           #
-#                                             #
-#------TEMPRORARY------
 
 os.system("clear")
 class server(object):
@@ -29,7 +24,7 @@ class server(object):
             thr.start()
             self.threadpool.append(thr)
         
-    def sync_contents(self):
+    def sync_contents(self, DIR):
         self.contents = os.listdir(DIR)
         self.content_dic = {}
         for i in self.contents:
@@ -44,21 +39,27 @@ class server(object):
         return bytes(value, "UTF-8")
         
 
-    def sync(self,c):
-        self.sync_contents()
+    def sync(self,c, DIR):
+        self.sync_contents(DIR)
         c.send(self.tel(json.dumps({"tag":"contents","data":self.content_dic})))
 
     def accept(self):
         c, addr = s.accept()
         self.clients.append(c)
         print(addr,"has just connected")
+        #GECICI
+        ROOT = "/sdcard/home/"
+        #GECICI
+        DIR = ROOT
         while 1:
             try:
                 received = c.recv(1024).decode("utf-8")
                 received = json.loads(received)
+                
+                
                 if received["tag"] == "push":
                     filename = received["data"]
-                    dosya = open(DIR+filename, "wb")
+                    dosya = open(ROOT+received["dir"]+filename, "wb")
                     c.send(self.tel(json.dumps({"tag":"info", "data":"ready"})))
                     data = True
                     while data:
@@ -66,11 +67,40 @@ class server(object):
                         dosya.write(data)
                     dosya.close()
                     print("push completed")
+                    
+                    
                 if received["tag"] == "sync":
-                    self.sync(c)
+                    self.sync(c, DIR)
+                    
+                if received["tag"] == "get_dir":
+                    c.send(self.tel(json.dumps({"tag":"dir", "data":directory})))
+                    
+                if received["tag"] == "cd":
+                    directory = received["data"]
+                    if not directory == "":
+                        if not directory[-1] == "/":
+                            directory += "/"
+                        
+                        if "".join(directory[-2:]) == "./":
+                            print("error")
+                            pass
+                        
+                        else:
+                            try:
+                                os.listdir(ROOT+directory)
+                                DIR = ROOT+directory
+                                self.sync(c, DIR)
+                                c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
+                            except OSError:
+                                c.send(self.tel(json.dumps({"tag":"dir_info", "data":"fail"})))
+                    else:
+                        directory = ""
+                        DIR = ROOT
+                        c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
+                                
                 if received["tag"] == "get":
                     try:
-                        dosya = open(DIR+received["data"], "rb")
+                        dosya = open(ROOT+received["dir"]+received["data"], "rb")
                         c.send(self.tel(json.dumps({"tag":"info","data":"succes"})))
                         if json.loads(c.recv(1024).decode("utf-8"))["data"] == "ready":
                             print("get with", addr, "started")

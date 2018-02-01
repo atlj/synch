@@ -14,10 +14,9 @@ class app(object):
         self.contents=[]
         self.filelist=[]
         self.diclist=[]
+        self.DIRECTORY    = ""
         self.ip = None
         self.port = None
-
-
     
     def tel(self,data):
         return(bytes(data, "UTF-8"))
@@ -40,11 +39,12 @@ class app(object):
         self.listen_thread.start()  
         
     def push(self, filename):
+        self.get_dir()
         try:
             dosya = open(DIR+filename, "rb")
             so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             so.connect((self.ip, self.port))
-            so.send(self.tel(json.dumps({"tag":"push", "data":filename})))
+            so.send(self.tel(json.dumps({"dir":self.DIRECTORY,"tag":"push", "data":filename})))
             print("push request sent for {}".format(filename))
             if json.loads(so.recv(1024).decode("utf-8"))["data"] == "ready":
                 print("push is starting")
@@ -59,10 +59,11 @@ class app(object):
             print("couldnt find {}".format(filename))
         
     def get(self, filename):
+        self.get_dir()
         #we define a second socket object due to a good file transfer(otherwise it doesnt cut the transfer)
         socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_object.connect((self.ip, self.port))
-        socket_object.send(self.tel(json.dumps({"tag":"get", "data":filename})))
+        socket_object.send(self.tel(json.dumps({"dir":self.DIRECTORY, "tag":"get", "data":filename})))
         print("Send get for {} waiting for response".format(filename))
         if json.loads(socket_object.recv(1024).decode("utf-8"))["data"] == "succes":
             print("contacted to server transfer is starting.")
@@ -77,11 +78,24 @@ class app(object):
             print("Get for {} completed saved in disk".format(filename))
         else:
             print("File was not found")       
+            
+    def get_dir(self):
+        s.send(self.tel(json.dumps({"tag":"get_dir"})))
         
     def listen(self):
         while 1:
             recv = s.recv(1024).decode("utf-8")                
             recv = json.loads(recv)
+            
+            if recv["tag"] == "dir":
+                self.DIRECTORY = recv["data"]
+            
+            if recv["tag"] == "dir_info":
+                if recv["data"] == "succes":
+                    print("current directory changed succesfully")
+                else:
+                    print("couldnt change directory")
+            
             if recv["tag"] == "contents":
                 self.contents = recv["data"]
                 self.filelist = []
@@ -95,14 +109,27 @@ class app(object):
                 
     def cmd(self):
         print("\tCommands:\nls\nkill\nget\npush\ncd")
+        
         while 1:
             get_cmd = input(">>")
+            
+            if "cd" in get_cmd:
+                if not get_cmd == "cd":
+                    get_cmd = get_cmd.split(" ")
+                    directory = " ".join(get_cmd[1:])
+                    s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
+                    
+                else:
+                    s.send(self.tel(json.dumps({"tag":"cd", "data":""})))
+            
             if get_cmd == "ls":
                 s.send(self.tel(json.dumps({"tag":"sync"})))
                 for i in self.diclist:
                     print("> "+i)
                 for i in self.filelist:
                     print("- "+i)
+                    
+                    
             elif "get" in get_cmd:
                 try:
                     get_cmd = get_cmd.split(" ")
@@ -113,6 +140,8 @@ class app(object):
                     self.get(name)
                 except IndexError:
                     print("wrong usage of get use\nget [filename] instead")
+                    
+                    
             elif "push" in get_cmd:
                 try:
                     get_cmd = get_cmd.split(" ")
