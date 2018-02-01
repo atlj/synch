@@ -5,7 +5,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 #------TEMPRORARY------
 #                                             #
-DIR = "/sdcard/home/"     #
+DIR = "/sdcard/home/"           #
 #                                             #
 #------TEMPRORARY------
 
@@ -52,25 +52,35 @@ class server(object):
         c, addr = s.accept()
         self.clients.append(c)
         print(addr,"has just connected")
-        self.sync(c)
         while 1:
             try:
                 received = c.recv(1024).decode("utf-8")
                 received = json.loads(received)
+                if received["tag"] == "push":
+                    filename = received["data"]
+                    dosya = open(DIR+filename, "wb")
+                    c.send(self.tel(json.dumps({"tag":"info", "data":"ready"})))
+                    data = True
+                    while data:
+                        data = c.recv(1024)
+                        dosya.write(data)
+                    dosya.close()
+                    print("push completed")
                 if received["tag"] == "sync":
                     self.sync(c)
                 if received["tag"] == "get":
                     try:
                         dosya = open(DIR+received["data"], "rb")
                         c.send(self.tel(json.dumps({"tag":"info","data":"succes"})))
-                        print("get with", addr, "started")
-                        l = dosya.read(1024)
-                        while l:
-                            c.send(l)
+                        if json.loads(c.recv(1024).decode("utf-8"))["data"] == "ready":
+                            print("get with", addr, "started")
                             l = dosya.read(1024)
-                        print("get complete")
-                        dosya.close
-                        c.send(self.tel("gg"))
+                            while l:
+                                c.send(l)
+                                l = dosya.read(1024)
+                            print("get complete")
+                            dosya.close
+                            c.close()
                     except Exception as e:
                         print("couldnt find file")
                         c.send(self.tel(json.dumps({"tag":"info","data":"fail"})))
@@ -98,7 +108,7 @@ def main():
         
                     
     serv = server(ip, port)
-    serv.create_thread(10)    
+    serv.create_thread(32)    
     print("listening for connections")
 
 

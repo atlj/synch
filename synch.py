@@ -40,35 +40,49 @@ class app(object):
         self.listen_thread = Thread(target = self.listen)
         self.listen_thread.start()  
         
+    def push(self, filename):
+        try:
+            dosya = open(DIR+filename, "rb")
+            so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            so.connect((self.ip, self.port))
+            so.send(self.tel(json.dumps({"tag":"push", "data":filename})))
+            print("push request sent for {}".format(filename))
+            if json.loads(so.recv(1024).decode("utf-8"))["data"] == "ready":
+                print("push is starting")
+                veri = True
+                while veri:
+                    veri = dosya.read()
+                    so.send(veri)
+                print("succesfully pushed {}".format(filename))
+            dosya.close()
+            so.close()
+        except Exception as e:
+            print("couldnt find {}".format(filename))
+        
     def get(self, filename):
-        self.switch=False
-        s.send(self.tel(json.dumps({"tag":"get", "data":filename})))
+        #we define a second socket object due to a good file transfer(otherwise it doesnt cut the transfer)
+        socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_object.connect((self.ip, self.port))
+        socket_object.send(self.tel(json.dumps({"tag":"get", "data":filename})))
         print("Send get for {} waiting for response".format(filename))
-        self.listen_thread.join()
-        if self.switch_2:
+        if json.loads(socket_object.recv(1024).decode("utf-8"))["data"] == "succes":
+            print("contacted to server transfer is starting.")
             dosya = open(DIR+filename, "wb")
             data = True
-            a=1
+            socket_object.send(self.tel(json.dumps({"tag":"info", "data":"ready"})))
             while data:
-                data = s.recv(1024)
-                #this sentence is reducing performance and is going to be changed afterwards
-                if data == self.tel("gg"):
-                     break
+                data = socket_object.recv(1024)
                 dosya.write(data)
             dosya.close()
+            del(socket_object)
             print("Get for {} completed saved in disk".format(filename))
         else:
             print("File was not found")       
-        self.definer()
-        self.switch_2 = False
         
     def listen(self):
-        while self.switch:
+        while 1:
             recv = s.recv(1024).decode("utf-8")                
             recv = json.loads(recv)
-            if recv["tag"] == "info":
-                if recv["data"] == "succes":
-                    self.switch_2 = True
             if recv["tag"] == "contents":
                 self.contents = recv["data"]
                 self.filelist = []
@@ -100,6 +114,13 @@ class app(object):
                     self.get(name)
                 except IndexError:
                     print("wrong usage of get use\nget [filename] instead")
+            elif "push" in get_cmd:
+                try:
+                    get_cmd = get_cmd.split(" ")
+                    name = " ".join(get_cmd[1:])
+                    self.push(name)
+                except IndexError:
+                    print("wrong use of push use\npush [filename] instead")
                     
         
 def main():
@@ -124,6 +145,7 @@ def main():
         run.ip = ip
         run.port = port
         run.connect()
+        s.send(run.tel(json.dumps({"tag":"sync"})))
         t = Thread(target=run.cmd)
         t.start()
         
