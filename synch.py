@@ -2,6 +2,8 @@
 import socket, server, json,time
 from threading import Thread
 
+#TODO: ADD MULTI FILE UPLOADING OR DOWNLOADING AND FILE PRINT FILE SIZES
+
 #TEMPROARY
 DIR = "/sdcard/deneme/"
 #TEMP
@@ -55,7 +57,7 @@ class app(object):
                 print("succesfully pushed {}".format(filename))
             dosya.close()
             so.close()
-        except Exception as e:
+        except IOError:
             print("couldnt find {}".format(filename))
         
     def get(self, filename):
@@ -108,10 +110,20 @@ class app(object):
 
                 
     def cmd(self):
-        print("\tCommands:\nls\nkill\nget\npush\ncd")
+        print("\tCommands:\nls\ngetall\npushall\nget\npush\ncd")
         
         while 1:
             get_cmd = input(">>")
+            
+            if get_cmd == "pushall":
+                #this will require some work
+                pass
+            
+            if get_cmd == "getall":
+                s.send(self.tel(json.dumps({"tag":"sync"})))
+                for i in self.filelist:
+                    self.get(i)
+                
             
             if "cd" in get_cmd:
                 if not get_cmd == "cd":
@@ -131,24 +143,26 @@ class app(object):
                     
                     
             elif "get" in get_cmd:
-                try:
-                    get_cmd = get_cmd.split(" ")
-                    if len(get_cmd) >2:
-                        name = " ".join(get_cmd[1:])
-                    else:
-                        name = get_cmd[1]
-                    self.get(name)
-                except IndexError:
-                    print("wrong usage of get use\nget [filename] instead")
+                if not get_cmd == "getall":
+                    try:
+                        get_cmd = get_cmd.split(" ")
+                        if len(get_cmd) >2:
+                            name = " ".join(get_cmd[1:])
+                        else:
+                            name = get_cmd[1]
+                        self.get(name)
+                    except IndexError:
+                        print("wrong usage of get use\nget [filename] instead")
                     
                     
             elif "push" in get_cmd:
-                try:
-                    get_cmd = get_cmd.split(" ")
-                    name = " ".join(get_cmd[1:])
-                    self.push(name)
-                except IndexError:
-                    print("wrong use of push use\npush [filename] instead")
+                if not get_cmd == "pushall":
+                    try:
+                        get_cmd = get_cmd.split(" ")
+                        name = " ".join(get_cmd[1:])
+                        self.push(name)
+                    except IndexError:
+                        print("wrong use of push use\npush [filename] instead")
                     
         
 def main():

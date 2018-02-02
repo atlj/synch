@@ -111,7 +111,7 @@ class server(object):
                             print("get complete")
                             dosya.close
                             c.close()
-                    except Exception as e:
+                    except IOError:
                         print("couldnt find file")
                         c.send(self.tel(json.dumps({"tag":"info","data":"fail"})))
             except Exception as e:
