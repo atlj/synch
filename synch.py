@@ -2,7 +2,8 @@
 import socket, server, json,time
 from threading import Thread
 
-#TODO: ADD MULTI FILE UPLOADING OR DOWNLOADING AND FILE PRINT FILE SIZES
+#TODO: ADD MULTI FILE UPLOADING AND FILE PRINT FILE SIZES
+
 
 #TEMPROARY
 DIR = "/sdcard/deneme/"
@@ -13,10 +14,13 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 class app(object):
 
     def __init__(self):
+    #these are declared early to make code clearer
         self.contents=[]
         self.filelist=[]
         self.diclist=[]
         self.DIRECTORY    = ""
+        self.switch= False #this switch is used for code to wait to sycnh
+        self.switch_2 = False #this switch is use for code to wait to get dir info
         self.ip = None
         self.port = None
     
@@ -33,6 +37,8 @@ class app(object):
     def definer(self):
         self.listen_thread = Thread(target=self.listen)
         self.listen_thread.start()
+        
+        
     
     def connect(self):
         s.connect((self.ip, self.port))
@@ -41,7 +47,10 @@ class app(object):
         self.listen_thread.start()  
         
     def push(self, filename):
+        self.switch_2 = False
         self.get_dir()
+        while not self.switch_2:
+            pass
         try:
             dosya = open(DIR+filename, "rb")
             so = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,7 +70,10 @@ class app(object):
             print("couldnt find {}".format(filename))
         
     def get(self, filename):
+        self.switch_2 = False
         self.get_dir()
+        while not self.switch_2:
+            pass
         #we define a second socket object due to a good file transfer(otherwise it doesnt cut the transfer)
         socket_object = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         socket_object.connect((self.ip, self.port))
@@ -91,6 +103,7 @@ class app(object):
             
             if recv["tag"] == "dir":
                 self.DIRECTORY = recv["data"]
+                self.switch_2 = True
             
             if recv["tag"] == "dir_info":
                 if recv["data"] == "succes":
@@ -107,6 +120,7 @@ class app(object):
                         self.filelist.append(i)
                     else:
                         self.diclist.append(i)
+                self.switch = True
 
                 
     def cmd(self):
@@ -120,7 +134,10 @@ class app(object):
                 pass
             
             if get_cmd == "getall":
+                self.switch = False               
                 s.send(self.tel(json.dumps({"tag":"sync"})))
+                while not self.switch: #this makes code to wait for renewing file data
+                    pass
                 for i in self.filelist:
                     self.get(i)
                 
@@ -135,7 +152,10 @@ class app(object):
                     s.send(self.tel(json.dumps({"tag":"cd", "data":""})))
             
             if get_cmd == "ls":
-                s.send(self.tel(json.dumps({"tag":"sync"})))
+                self.switch = False
+                s.send(self.tel(json.dumps({"tag":"sync"})))          
+                while not self.switch:
+                    pass
                 for i in self.diclist:
                     print("> "+i)
                 for i in self.filelist:
