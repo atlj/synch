@@ -1,6 +1,16 @@
 #-*-coding:utf8;-*-
-import socket, server, json,time
+import socket, server, json,time, os, sys
 from threading import Thread
+
+local_dir = os.path.dirname(os.path.realpath(__file__))+"/" #dir of code file 
+try:
+    config_file = local_dir+"config.conf"
+    with open(config_file, "r") as dosya:
+        config = json.load(dosya)
+    first_run = False
+            
+except IOError:
+    first_run = True
 
 #TODO: ADD MULTI FILE UPLOADING AND FILE PRINT FILE SIZES
 
@@ -28,10 +38,15 @@ class app(object):
         return(bytes(data, "UTF-8"))
     
     def menu(self):
-        print("\t1)Be a Server\n\t2)Client Mode")
+        print("\t1)Be a Server\n\t2)Client Mode\n\t3)Delete Config(If exists).")
         while 1:
             choice = input("\t>>")
-            if choice in ["1", "2"]:
+            if choice in ["1", "2", "3"]:
+                if choice == "3":
+                    if not first_run:
+                        return int(choice)
+                    else:
+                        print("\n\tNo config file found")
                 return int(choice)
                 
     def definer(self):
@@ -187,29 +202,51 @@ class app(object):
         
 def main():
     run = app()
-    if run.menu() == 1:
+    menu_output = run.menu()
+    if  menu_output == 1:
         server.main()
-    else:
-        print("\n\tPlease enter ip and port\n\texample: localhost:1221")
-        while 1:
-            data = input("\t>>")
-            try:
-                data = data.split(":")
-                ip = data[0]
+    elif menu_output == 2:
+        if first_run:
+            print("\n\tPlease enter ip and port\n\texample: localhost:1221")
+            while 1:
+                data = input("\t>>")
                 try:
-                    port =data[1]
-                    port =int(port)
+                    data = data.split(":")
+                    ip = data[0]
+                    try:
+                        port =data[1]
+                        port =int(port)
+                        break
+                    except ValueError:
+                        print("\tinvalid port")
+                except Exception as e:
+                    print("\tinvalid data")
+            print("\n\twould you want to save\n\tthis data ?\n\ty or n")
+            while 1:
+                choice = input("\t>>")
+                if choice in ["y", "n"]:
                     break
-                except ValueError:
-                    print("\tinvalid port")
-            except Exception as e:
-                print("\tinvalid data")
+            if choice == "y":
+                config = {"ip":ip, 
+                                "port":port}
+                with open(local_dir+"config.conf", "w") as dosya:
+                    json.dump(config, dosya)
+        else:
+            global config
+            ip = config["ip"]
+            port = config["port"]
         run.ip = ip
         run.port = port
         run.connect()
         s.send(run.tel(json.dumps({"tag":"sync"})))
         t = Thread(target=run.cmd)
         t.start()
+        
+    elif menu_output == 3:
+        os.remove(config_file)
+        print("\n\tconfig file has deleted")
+        sys.exit()
+
         
 
 if __name__=="__main__":
