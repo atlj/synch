@@ -156,6 +156,27 @@ class app(object):
         while 1:
             get_cmd = input(">>")
             
+            if "lcd" in get_cmd: #stands for local cd
+                global DIR
+                if not get_cmd == "lcd":
+                    dirchange = get_cmd.split(" ")
+                    dirchange = dirchange[1]
+                    if not dirchange[-1] == "/":
+                        dirchange += "/"
+                    print("local dir is changed as {}".format(dirchange))
+                    try:
+                        os.listdir(dirchange)
+                        DIR = dirchange
+                        
+                    except OSError:
+                        print("lcd failed")
+                else:
+                    print("usage lcd [path]")
+                        
+                    
+       
+                    
+            
             if get_cmd == "help":
                 print(self.helptext)
             
@@ -219,9 +240,10 @@ class app(object):
             
             if "cd" in get_cmd:
                 if not get_cmd == "cd":
-                    get_cmd = get_cmd.split(" ")
-                    directory = " ".join(get_cmd[1:])
-                    s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
+                    if not get_cmd == "lcd":
+                        get_cmd = get_cmd.split(" ")
+                        directory = " ".join(get_cmd[1:])
+                        s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
                     
                 else:
                     s.send(self.tel(json.dumps({"tag":"cd", "data":""})))
