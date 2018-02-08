@@ -51,6 +51,7 @@ class server(object):
         ROOT = "/sdcard/home/"
         #GECICI
         DIR = ROOT
+        directory = ""
         while 1:
             try:
                 received = c.recv(1024).decode("utf-8")
@@ -115,6 +116,7 @@ class server(object):
                         print("couldnt find file")
                         c.send(self.tel(json.dumps({"tag":"info","data":"fail"})))
             except Exception as e:
+                print(e)
                 print("user {} has disconnected".format(addr))  
                 self.create_thread(1)
                 break       

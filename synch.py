@@ -83,6 +83,17 @@ class app(object):
             so.close()
         except IOError:
             print("couldnt find {}".format(filename))
+            
+    def local_synch(self, DIR):
+        self.local_contents = os.listdir(DIR)
+        self.local_filelist = []
+        self.local_dirlist = []
+        for i in self.local_contents:
+            if os.path.isfile(DIR+i):
+                self.local_filelist.append(i)
+            else:
+                self.local_dirlist.append(i)
+        
         
     def get(self, filename):
         self.switch_2 = False
@@ -139,10 +150,59 @@ class app(object):
 
                 
     def cmd(self):
-        print("\tCommands:\nls\ngetall\npushall\nget\npush\ncd")
+        self.helptext ="ls    displays server's contents\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\ncd [dirname]   changes dir\nlls    displays local contents\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
+        print("\tCommands:\nhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nsynch")
         
         while 1:
             get_cmd = input(">>")
+            
+            if get_cmd == "help":
+                print(self.helptext)
+            
+            if get_cmd == "pushall":
+                self.local_synch(DIR)
+                for i in self.local_filelist:
+                    self.push(i)
+            
+            if get_cmd == "synch":
+                pushed = []
+                pulled = []
+                push_count = 0
+                pull_count=0
+                self.local_synch(DIR)
+                self.switch = False
+                s.send(self.tel(json.dumps({"tag":"sync"})))
+                while not self.switch:
+                    pass
+                print("synch started")
+                for i in self.local_filelist:
+                    if not i in self.filelist:
+                        self.push(i)
+                        pushed.append(i)
+                        push_count +=1
+                for i in self.filelist:
+                    if not i in self.local_filelist:
+                        self.get(i)
+                        pulled.append(i)
+                        pull_count +=1
+                        
+                print("synch completed")
+                print("Pushed {} object(s) in total:".format(push_count))
+                for i in pushed:
+                    print("> {}".format(i))
+                print("Pulled {} object(s) in total:".format(pull_count))
+                for i in pulled:
+                    print("< {}".format(i))
+                	
+            
+            if get_cmd == "lls":   #stands for local ls
+                print("PRINTING LOCAL DIR")
+                self.local_synch(DIR)
+                for i in self.local_dirlist:
+                    print("> "+i)
+                for i in self.local_filelist:
+                    print("- "+i)
+                
             
             if get_cmd == "pushall":
                 #this will require some work
