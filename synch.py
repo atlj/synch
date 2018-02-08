@@ -12,7 +12,7 @@ try:
 except IOError:
     first_run = True
 
-#TODO:YOU CAN STILL DELETE NON EXISTING CONFIG DO THE  ./ FOR CD AND LCD  AND FILE PRINT FILE SIZES
+#TODO:ADD DELDIR AND MKDIR DO THE  ./ FOR CD AND LCD  AND FILE PRINT FILE SIZES SYNCH DOESNT WORK İF THE FILE IS CHANGED MAKE IT WORK
 
 
 #TEMPROARY
@@ -42,12 +42,13 @@ class app(object):
         while 1:
             choice = input("\t>>")
             if choice in ["1", "2", "3"]:
+                if choice == "1" or choice == "2":
+                    return(int(choice))
                 if choice == "3":
                     if not first_run:
                         return int(choice)
                     else:
-                        print("\n\tNo config file found")
-                return int(choice)
+                        print("\tNo config file found")
                 
     def definer(self):
         self.listen_thread = Thread(target=self.listen)
@@ -150,11 +151,16 @@ class app(object):
 
                 
     def cmd(self):
-        self.helptext ="ls    displays server's contents\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\ncd [dirname]   changes dir\nlls    displays local contents\nlcd    changes local dir\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
-        print("\tCommands:\nhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nlcd\nsynch")
+  
+        self.helptext ="ls    displays server's contents\ncd [path]   changes dir\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\nlls    displays local contents\nlcd [path]   changes local dir\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
+        self.tr_helptext = "ls    sunucudaki dosyalari listeler\ncd [yol]    sunucunun calistigi dizini degistirir\nget [dosya adi]   sunucudan dosya ceker\npush [dosya adi]    sunucuya dosya yukler\nlls    yerel dosyalari listeler\nlcd [yol]   yerel calisma dizinini degistirir\ngetall    sunucu calisma dizinindeki tum dosyalari yerel dizine aktarir\npushall    yerel calisma dizinindeki tum dosyalari sunucuya aktarir\nsynch    yerel dizindeki ve sunucu dizinindeki dosyalari esler"
+        print("\tCommands:\nhelp\ntrhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nlcd\nsynch")
         
         while 1:
             get_cmd = input(">>")
+            
+            if get_cmd == "trhelp":
+                print(self.tr_helptext)
             
             if "lcd" in get_cmd: #stands for local cd
                 global DIR
@@ -174,7 +180,6 @@ class app(object):
                     print("usage lcd [path]")
                         
                     
-       
                     
             
             if get_cmd == "help":
