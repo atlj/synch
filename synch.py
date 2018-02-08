@@ -12,7 +12,7 @@ try:
 except IOError:
     first_run = True
 
-#TODO: ADD MULTI FILE UPLOADING AND FILE PRINT FILE SIZES
+#TODO:YOU CAN STILL DELETE NON EXISTING CONFIG DO THE  ./ FOR CD AND LCD  AND FILE PRINT FILE SIZES
 
 
 #TEMPROARY
@@ -150,8 +150,8 @@ class app(object):
 
                 
     def cmd(self):
-        self.helptext ="ls    displays server's contents\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\ncd [dirname]   changes dir\nlls    displays local contents\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
-        print("\tCommands:\nhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nsynch")
+        self.helptext ="ls    displays server's contents\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\ncd [dirname]   changes dir\nlls    displays local contents\nlcd    changes local dir\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
+        print("\tCommands:\nhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nlcd\nsynch")
         
         while 1:
             get_cmd = input(">>")
@@ -240,12 +240,12 @@ class app(object):
             
             if "cd" in get_cmd:
                 if not get_cmd == "cd":
-                    if not get_cmd == "lcd":
+                    if  not "lcd" in get_cmd:
                         get_cmd = get_cmd.split(" ")
                         directory = " ".join(get_cmd[1:])
                         s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
                     
-                else:
+                if get_cmd == "cd":
                     s.send(self.tel(json.dumps({"tag":"cd", "data":""})))
             
             if get_cmd == "ls":
