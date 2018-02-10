@@ -1,4 +1,4 @@
-#-*-coding:utf8;-*-
+#-*-coding:utf8-*-
 import socket, server, json,time, os, sys
 from threading import Thread
 
@@ -12,16 +12,14 @@ try:
 except IOError:
     first_run = True
 
-#TODO:ADD DELDIR AND MKDIR DO THE  ./ FOR CD AND LCD  AND FILE PRINT FILE SIZES SYNCH DOESNT WORK İF THE FILE IS CHANGED MAKE IT WORK
+#TODO:IF YOU TYPE "LCD " IT CRUSHES ITS PROBABLY WORKS WITH OTHER CODES TOO FIX THAT ADD DELDIR AND MKDIR DO THE  ./ FOR CD AND LCD  AND FILE PRINT FILE SIZES SYNCH DOESNT WORK İF THE FILE IS CHANGED MAKE IT WORK
 
 
-#TEMPROARY
-DIR = "/sdcard/deneme/"
-#TEMP
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 class app(object):
+    global DIR #coding error we will fix this later.
 
     def __init__(self):
     #these are declared early to make code clearer
@@ -125,7 +123,7 @@ class app(object):
         
     def listen(self):
         while 1:
-            recv = s.recv(1024).decode("utf-8")                
+            recv = s.recv(1024).decode("utf-8")
             recv = json.loads(recv)
             
             if recv["tag"] == "dir":
@@ -137,6 +135,7 @@ class app(object):
                     print("current directory changed succesfully")
                 else:
                     print("couldnt change directory")
+                s.send(self.tel(json.dumps({"tag":"sync"})))
             
             if recv["tag"] == "contents":
                 self.contents = recv["data"]
@@ -164,20 +163,23 @@ class app(object):
             
             if "lcd" in get_cmd: #stands for local cd
                 global DIR
-                if not get_cmd == "lcd":
+                try:
                     dirchange = get_cmd.split(" ")
                     dirchange = dirchange[1]
                     if not dirchange[-1] == "/":
                         dirchange += "/"
-                    print("local dir is changed as {}".format(dirchange))
+                    if "".join(dirchange[:2]) == "./":
+                        dirchange = "".join(dirchange[2:])
+                        dirchange = DIR + dirchange
                     try:
                         os.listdir(dirchange)
                         DIR = dirchange
-                        
+                        print("local dir is changed as {}".format(dirchange))
+                    
                     except OSError:
                         print("lcd failed")
-                else:
-                    print("usage lcd [path]")
+                except IndexError:
+                    print("usage: lcd [path]")    
                         
                     
                     
@@ -246,10 +248,13 @@ class app(object):
             if "cd" in get_cmd:
                 if not get_cmd == "cd":
                     if  not "lcd" in get_cmd:
-                        get_cmd = get_cmd.split(" ")
-                        directory = " ".join(get_cmd[1:])
-                        s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
-                    
+                        try:
+                            get_cmd = get_cmd.split(" ")
+                            directory = " ".join(get_cmd[1:])
+                            s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
+                        except IndexError:
+                            print("usage: cd [path]")
+
                 if get_cmd == "cd":
                     s.send(self.tel(json.dumps({"tag":"cd", "data":""})))
             
@@ -288,12 +293,23 @@ class app(object):
                     
         
 def main():
+    global config
     run = app()
     menu_output = run.menu()
     if  menu_output == 1:
         server.main()
     elif menu_output == 2:
         if first_run:
+            print("\tPlease define client directory\n\texample: /home")
+            while 1:
+                girdi = input("\t>>")
+                if not girdi[-1] == "/":
+                    girdi += "/"
+                try:
+                    os.listdir(girdi)
+                    break
+                except OSError:
+                    print("\tPlease enter a valid dir")
             print("\n\tPlease enter ip and port\n\texample: localhost:1221")
             while 1:
                 data = input("\t>>")
@@ -315,13 +331,16 @@ def main():
                     break
             if choice == "y":
                 config = {"ip":ip, 
-                                "port":port}
+                          "port":port,
+                          "dir":girdi}
                 with open(local_dir+"config.conf", "w") as dosya:
                     json.dump(config, dosya)
         else:
-            global config
             ip = config["ip"]
             port = config["port"]
+            girdi = config["dir"]
+        global DIR
+        DIR= girdi
         run.ip = ip
         run.port = port
         run.connect()

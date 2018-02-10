@@ -1,10 +1,22 @@
-#-*-coding:utf8;-*-
-import socket, os,json,time
+#-*-coding:utf8-*-
+import socket, os,json,time, sys
 from threading import Thread
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+local_dir = os.path.dirname(os.path.realpath(__file__))+"/" #dir of code file 
+
+try:
+    with open(local_dir+"servconf.conf", "r") as dosya:
+        config = json.load(dosya)
+
+    first_run = False
+
+except IOError:
+    first_run = True
 
 os.system("clear")
+
 class server(object):
     def __init__(self, ip, port):
         self.ip = ip
@@ -12,6 +24,7 @@ class server(object):
         self.clients = []
         self.content_dic = {}
         self.threadpool=[]
+        self.ROOT = ""
         self.binder()
         
     def binder(self):
@@ -47,10 +60,7 @@ class server(object):
         c, addr = s.accept()
         self.clients.append(c)
         print(addr,"has just connected")
-        #GECICI
-        ROOT = "/sdcard/home/"
-        #GECICI
-        DIR = ROOT
+        DIR = self.ROOT
         directory = ""
         while 1:
             try:
@@ -82,21 +92,18 @@ class server(object):
                         if not directory[-1] == "/":
                             directory += "/"
                         
-                        if "".join(directory[-2:]) == "./":
-                            print("error")
-                            pass
+                        if "".join(directory[:2]) == "./":
+                            directory = DIR + "".join(directory[2:])
                         
-                        else:
-                            try:
-                                os.listdir(ROOT+directory)
-                                DIR = ROOT+directory
-                                self.sync(c, DIR)
-                                c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
-                            except OSError:
-                                c.send(self.tel(json.dumps({"tag":"dir_info", "data":"fail"})))
+                        try:
+                            os.listdir(self.ROOT+directory)
+                            DIR = self.ROOT+directory
+                            c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
+                        except OSError:
+                            c.send(self.tel(json.dumps({"tag":"dir_info", "data":"fail"})))
                     else:
                         directory = ""
-                        DIR = ROOT
+                        DIR = self.ROOT
                         c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
                                 
                 if received["tag"] == "get":
@@ -123,30 +130,60 @@ class server(object):
 
                 
 def main():
-    global serv
-    print("\n\tPlease enter ip and port\n\texample: localhost:1221\n")
-    while 1:
-        adress = input("\t>>")
-        try:
-            ip = adress.split(":")[0]
-            port = adress.split(":")[1]   
+    global serv, config
+    if first_run:
+        print("\n\tPlease enter server dir\n\texample: /home")
+        while 1:
+            girdi = input("\t>>")
+            if not girdi[-1] == "/":
+                girdi += "/"
             try:
-                port = int(port)
+                os.listdir(girdi)
                 break
-            except ValueError:
-                print("\tport is not valid")
-        except Exception as e:
-            print("\twrong entry")
-        
-                    
+            except OSError:
+                print("\n\tPlease enter a valid dir")
+        print("\n\tPlease enter ip and port\n\texample: localhost:1221\n")
+        while 1:
+            adress = input("\t>>")
+            try:
+                ip = adress.split(":")[0]
+                port = adress.split(":")[1]   
+                try:
+                    port = int(port)
+                    break
+                except ValueError:
+                    print("\tport is not valid")
+            except Exception as e:
+                print("\twrong entry")
+        print("\n\twould you want to save these datas?\n\t y or n")
+        while 1:
+            inp = input("\n\t>>")
+            if inp in ["y", "n"]:
+                break
+        if inp == "y":
+            config = {"ip":ip,
+                      "port":port,
+                      "dir":girdi}
+            with open(local_dir+"servconf.conf", "w") as dosya:
+                json.dump(config, dosya)
+    else:
+        ip = config["ip"]
+        port = config["port"]
+        girdi = config["dir"]
+
+
     serv = server(ip, port)
+    serv.ROOT = girdi
     serv.create_thread(32)    
     print("listening for connections")
 
 
 
 if __name__ == "__main__":
-    main()
-
+    try:
+        main()
+    except KeyboardInterrupt:
+        s.close()
+        sys.exit()
 
 
