@@ -39,10 +39,14 @@ class server(object):
         self.content_dic = {}
         for i in self.contents:
             if os.path.isfile(DIR+i):
+                size = os.path.getsize(DIR+i)
                 tip = "file"
+                self.content_dic[i]={"type":tip,
+                                     "size":size}
             else:
                 tip = "dir"
-            self.content_dic[i]=tip
+                self.content_dic[i]={"type":tip,
+                                     "size":None}
 
     def tel(self,value):
         return bytes(value, "UTF-8")
@@ -54,7 +58,7 @@ class server(object):
     def accept(self):
         c, addr = s.accept()
         self.clients.append(c)
-        print(addr,"has just connected")
+        print(addr[0],"has just connected")
         DIR = self.ROOT
         directory = ""
         while 1:
@@ -124,9 +128,12 @@ class server(object):
                         print("couldnt find file")
                         c.send(self.tel(json.dumps({"tag":"info","data":"fail"})))
 
-            except Exception as e:
-                print(e)
-                print("user {} has disconnected".format(addr))
+            except json.decoder.JSONDecodeError:
+                print("user {} has disconnected".format(addr[0]))
+                self.create_thread(1)
+                break
+            except OSError:
+                print("user {} has  disconnected".format(addr[0]))
                 self.create_thread(1)
                 break
 
@@ -164,7 +171,7 @@ def main():
                 except ValueError:
                     print("\tport is not valid")
 
-            except Exception as e:
+            except IndexError:
                 print("\twrong entry")
         print("\n\twould you want to save these datas?\n\t y or n")
 

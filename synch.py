@@ -13,7 +13,7 @@ try:
 except IOError:
     first_run = True
 
-#TODO ADD DELDIR AND MKDIR ADD HELP FOR PREDEFINED.FUNC ADD DELCONF FOR SERVER DON'T FORGET ABOUT FILESIZES  
+#TODO ADD DELDIR AND MKDIR ADD HELP FOR PREDEFINED.FUNC ADD DELCONF FOR SERVER
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -23,7 +23,7 @@ class app(object):
     def __init__(self):
     #these are declared early to make code clearer
         self.contents=[]
-        self.filelist=[]
+        self.filedic = {}
         self.diclist=[]
         self.DIRECTORY    = ""
         self.switch= False #this switch is used for code to wait to sycnh
@@ -97,14 +97,33 @@ class app(object):
             print("couldnt find {}".format(filename))
         self.switch_6 = True
             
+    def bcount(self, number):
+        gig = 0#Gigabyte
+        mib = 0#Megabyte
+        kib = 0#Kilobyte
+        b = number#byte
+        #this section is going to be coded in a really dumb way sorry for this will fixed in next commits
+        gib = b/(1024**3)
+        mib = b/(1024**2)
+        kib = b/1024
+
+        if int(gig) == 0:
+            if int(mib) == 0:
+                if int(kib) == 0:
+                    return str(b) + " bytes"
+                return "".join(str(kib)[:6]) + " kB"
+            return "".join(str(mib)[:6]) + " mB"
+        return "".join(str(gig)[:6]) + " gB"
+
     def local_synch(self, DIR):
         self.local_contents = os.listdir(DIR)
-        self.local_filelist = []
+        self.local_filedic = {}
         self.local_dirlist = []
         
         for i in self.local_contents:
             if os.path.isfile(DIR+i):
-                self.local_filelist.append(i)
+                size = os.path.getsize(DIR+i) 
+                self.local_filedic[i]= size
             
             else:
                 self.local_dirlist.append(i)
@@ -140,11 +159,12 @@ class app(object):
         self.switch_5 = True
             
     def get_dir(self):
+
         s.send(self.tel(json.dumps({"tag":"get_dir"})))
-        
+
     def listen(self):
         while 1:
-            recv = s.recv(1024).decode("utf-8")
+            recv = s.recv(1024**2).decode("utf-8")
             recv = json.loads(recv)
             
             if recv["tag"] == "dir":
@@ -153,35 +173,37 @@ class app(object):
             
             if recv["tag"] == "dir_info":
                 if recv["data"] == "succes":
-                    print("current directory changed succesfully")
+                    print("succesfully changed directory")
                 
                 else:
-                    print("couldnt change directory")
+                    print("failed to change directory")
                 s.send(self.tel(json.dumps({"tag":"sync"})))
             
             if recv["tag"] == "contents":
                 self.contents = recv["data"]
-                self.filelist = []
+                self.filedic = {}
                 self.diclist = []
-                
                 for i in self.contents:
-                    if self.contents[i] == "file":
-                        self.filelist.append(i)
+                    if self.contents[i]["type"] == "file":
+                        self.contents[i]["easysize"] = self.bcount(self.contents[i]["size"])
+                        self.filedic[i] = self.contents[i] 
                     
                     else:
                         self.diclist.append(i)
                 self.switch = True
 
     def cmd(self):
+        global DIR
 #------------------------------
         self.helptext ="ls    displays server's contents\ncd [path]   changes dir\nget [filename]    gets a file from server\npush [filename]    pushes a file to server\nlls    displays local contents\nlcd [path]   changes local dir\ngetall    gets all files from current server dir\npushall    pushes all files in local dir to server\nsynch    synches local dir and server dir"
 #------------------------------        
         self.tr_helptext = "ls    sunucudaki dosyalari listeler\ncd [yol]    sunucunun calistigi dizini degistirir\nget [dosya adi]   sunucudan dosya ceker\npush [dosya adi]    sunucuya dosya yukler\nlls    yerel dosyalari listeler\nlcd [yol]   yerel calisma dizinini degistirir\ngetall    sunucu calisma dizinindeki tum dosyalari yerel dizine aktarir\npushall    yerel calisma dizinindeki tum dosyalari sunucuya aktarir\nsynch    yerel dizindeki ve sunucu dizinindeki dosyalari esler"
 #------------------------------        
         
+        if not self.script_mode:
+            print("\tCommands:\nhelp\ntrhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nlcd\nsynch")
         while 1:
             if not self.script_mode:
-                print("\tCommands:\nhelp\ntrhelp\nls\ngetall\npushall\nget\npush\ncd\nlls\nlcd\nsynch")
                 self.get_cmd = input(">>")
             
             else:
@@ -195,7 +217,6 @@ class app(object):
                 print(self.tr_helptext)
             
             if "lcd" in self.get_cmd: #stands for local cd
-                global DIR
                 
                 try:
                     dirchange = self.get_cmd.split(" ")
@@ -209,6 +230,8 @@ class app(object):
                         dirchange = DIR + dirchange
                     
                     try:
+                        if not dirchange[0]  =="/":
+                            dirchange = "/"+dirchange
                         os.listdir(dirchange)
                         DIR = dirchange
                         print("local dir is changed as {}".format(dirchange))
@@ -224,7 +247,7 @@ class app(object):
             
             if self.get_cmd == "pushall":
                 self.local_synch(DIR)
-                for i in self.local_filelist:
+                for i in self.local_filedic:
                     self.switch_6 = False
                     self.push(i)
                     while not self.switch_6:
@@ -245,7 +268,7 @@ class app(object):
                 print("synch started")
                 
                 for i in self.local_filelist:
-                    if not i in self.filelist:
+                    if not i in self.dic:
                         self.switch_6 = False
                         self.push(i)
                         while not self.switch_6:
@@ -253,7 +276,7 @@ class app(object):
                         pushed.append(i)
                         push_count +=1
                 
-                for i in self.filelist:
+                for i in self.filedic:
                     if not i in self.local_filelist:
                         self.switch_5 = False
                         self.get(i)
@@ -280,8 +303,11 @@ class app(object):
                 for i in self.local_dirlist:
                     print("> "+i)
                 
-                for i in self.local_filelist:
-                    print("- "+i)
+                for i in self.local_filedic:
+                    num = 30-len(i)
+                    if num<0:
+                        num = 10
+                    print("- "+i+num*" "+self.bcount(self.local_filedic[i]))
                 
             if self.get_cmd == "pushall":
                 #this will require some work
@@ -294,7 +320,7 @@ class app(object):
                 while not self.switch: #this makes code to wait for renewing file data
                     pass
                 
-                for i in self.filelist:
+                for i in self.filedic:
                     self.switch_5 = False
                     self.get(i)
                     while not self.switch_5:
@@ -325,8 +351,11 @@ class app(object):
                 for i in self.diclist:
                     print("> "+i)
                 
-                for i in self.filelist:
-                    print("- "+i)
+                for i in self.filedic:
+                    num = 30-len(i)
+                    if num < 0:
+                        num = 10
+                    print("- "+ i +num*" "+self.filedic[i]["easysize"])
                     
             elif "get" in self.get_cmd:
                 if not self.get_cmd == "getall":
@@ -397,7 +426,7 @@ class predefined(object):
 
 
 def main():
-    global config
+    global config, DIR
     run = app()
     menu_output = run.menu()
     
@@ -460,7 +489,6 @@ def main():
             ip = config["ip"]
             port = config["port"]
             girdi = config["dir"]
-        global DIR
         DIR= girdi
         run.ip = ip
         run.port = port
