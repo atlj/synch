@@ -111,9 +111,19 @@ class app(object):
             if int(mib) == 0:
                 if int(kib) == 0:
                     return str(b) + " bytes"
-                return "".join(str(kib)[:6]) + " kB"
-            return "".join(str(mib)[:6]) + " mB"
-        return "".join(str(gig)[:6]) + " gB"
+                return self.floatize(str(kib)) + " kB"
+            return self.floatize(str(mib)) + " mB"
+        return self.floatize(str(gib)) + " gB"
+        
+    def floatize(self, value):
+        splitted = value.split(".")
+        q = splitted[0]
+        f = splitted[1]
+        if len(f)>1:
+            f = "".join(f[:2])
+            return q+"."+f
+        return q+"."+f
+        
 
     def local_synch(self, DIR):
         self.local_contents = os.listdir(DIR)
