@@ -240,11 +240,11 @@ class app(object):
                         dirchange = DIR + dirchange
                     
                     try:
-                        if not dirchange[0]  =="/":
-                            dirchange = "/"+dirchange
-                        os.listdir(dirchange)
-                        DIR = dirchange
-                        print("local dir is changed as {}".format(dirchange))
+         #               if not dirchange[0]  =="/":
+                 #           dirchange = "/"+dirchange
+                        os.listdir(DIR+dirchange.lstrip(DIR))
+                        DIR = DIR+dirchange.lstrip(DIR)
+                        print("local dir is changed as {}".format(DIR))
                     
                     except OSError:
                         print("lcd failed")

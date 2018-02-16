@@ -93,10 +93,11 @@ class server(object):
 
                         if "".join(directory[:2]) == "./":
                             directory = DIR + "".join(directory[2:])
-
+ 
+ 
                         try:
-                            os.listdir(self.ROOT+directory)
-                            DIR = self.ROOT+directory
+                            os.listdir(self.ROOT+directory.lstrip(self.ROOT))
+                            DIR = self.ROOT+directory.lstrip(self.ROOT)
                             c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
 
                         except OSError:
