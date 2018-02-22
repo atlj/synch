@@ -35,6 +35,7 @@ class app(object):
         self.ip = None
         self.port = None
         self.script_mode = False
+       
 
 
     def tel(self,data):
@@ -121,8 +122,8 @@ class app(object):
         f = splitted[1]
         if len(f)>1:
             f = "".join(f[:2])
-            return q+"."+f
-        return q+"."+f
+            return q+","+f
+        return q+","+f
         
 
     def local_synch(self, DIR):
@@ -174,8 +175,12 @@ class app(object):
 
     def listen(self):
         while 1:
-            recv = s.recv(1024**2).decode("utf-8")
-            recv = json.loads(recv)
+            try:
+                recv = s.recv(1024**2).decode("utf-8")
+                recv = json.loads(recv)
+            except ValueError:
+                print("connection down")
+                break
             
             if recv["tag"] == "dir":
                 self.DIRECTORY = recv["data"]
@@ -263,7 +268,16 @@ class app(object):
                     while not self.switch_6:
                         pass
             
-            if self.get_cmd == "synch":
+            if "synch" in self.get_cmd :
+                if not self.get_cmd == "synch":
+                    arg = self.get_cmd.split(" ")[1]
+                    if arg in ["push", "pull", "abort"]:
+                        synchmode = arg
+                else:
+                    synchmode = "normal"
+                if synchmode == "abort":
+                    inp = "abort"
+                inp = "normal"
                 pushed = []
                 pulled = []
                 push_count = 0
@@ -277,17 +291,58 @@ class app(object):
                 
                 print("synch started")
                 
-                for i in self.local_filelist:
-                    if not i in self.dic:
+                for i in self.local_filedic:
+                
+                   try:
+                       if not self.local_filedic[i]==self.filedic[i]["size"]:
+                           if synchmode == "abort":
+                               continue
+                           if not synchmode == "pull":
+                               if not synchmode == "push":
+                                   print("Detected dismatched file:{}\nselect an option push/pull/abort".format(i))
+                                   while 1:
+                                       inp = input(">>")
+                                       if inp in ["push", "pull", "abort"]:
+                                           break
+                               else:
+                                   inp = "push"
+                                       
+                               if inp == "push":
+                                   self.switch_6 = False
+                                   self.push(i)
+                                   while not self.switch_6:
+                                       pass
+                                   pushed.append(i)
+                                   push_count += 1
+                               if inp == "abort":
+                                   continue
+                
+                   except KeyError:
                         self.switch_6 = False
                         self.push(i)
                         while not self.switch_6:
                             pass
                         pushed.append(i)
                         push_count +=1
+                        
+                self.local_synch(DIR)
+                self.switch=False
+                s.send(self.tel(json.dumps({"tag":"sync"})))
+                while not self.switch:
+                    pass
+                
                 
                 for i in self.filedic:
-                    if not i in self.local_filelist:
+                    try:
+                        if not inp == "abort" and not self.filedic[i]["size"] == self.local_filedic[i]:
+                            self.switch_5 = False
+                            self.get(i)
+                            while not self.switch_5:
+                                pass
+                            pulled.append(i)
+                            pull_count += 1
+                
+                    except KeyError:
                         self.switch_5 = False
                         self.get(i)
                         while not self.switch_5:
