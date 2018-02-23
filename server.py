@@ -92,18 +92,19 @@ class server(object):
                             directory += "/"
 
                         if "".join(directory[:2]) == "./":
-                            directory = DIR + "".join(directory[2:])
- 
- 
+                            directory = DIR.replace(self.ROOT, "") + "".join(directory[2:])#idk why but strip doesnt work in here
+
                         try:
-                            os.listdir(self.ROOT+directory.lstrip(self.ROOT))
-                            DIR = self.ROOT+directory.lstrip(self.ROOT)
+                            if not self.ROOT[-1] == "/":
+                                self.ROOT += "/"
+                            os.listdir(self.ROOT+directory)
+                            DIR = self.ROOT+directory
                             c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))
 
                         except OSError:
                             c.send(self.tel(json.dumps({"tag":"dir_info", "data":"fail"})))
 
-                    else:
+                    if directory == "": 
                         directory = ""
                         DIR = self.ROOT
                         c.send(self.tel(json.dumps({"tag":"dir_info", "data":"succes"})))

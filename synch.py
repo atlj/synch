@@ -247,8 +247,9 @@ class app(object):
                     try:
          #               if not dirchange[0]  =="/":
                  #           dirchange = "/"+dirchange
-                        os.listdir(DIR+dirchange.lstrip(DIR))
-                        DIR = DIR+dirchange.lstrip(DIR)
+                        print(dirchange)
+                        os.listdir(dirchange)
+                        DIR =dirchange
                         print("local dir is changed as {}".format(DIR))
                     
                     except OSError:
