@@ -1,0 +1,23 @@
+Cd and Lcd
+
+ You can use ./ to referance current dir as root. For instance if your current directory is /home/programs and you want to change dir as /home/programs/arrays you can type "cd ./arrays" instead of "cd /home/programs/arrays". Same goes for lcd command.
+ 
+ In cd command if you want to go back to server's root dir you can type "cd" without a second parameter. For example if you have connected to a server and typed "cd directory" your directory will be changed as "/directory/" if you want to go back to original dir you can type "cd" and your directory will be changed as "/".
+ 
+Synch
+
+ While using synch command if you have files that are named same and their sizes are different program will ask to push/pull or abort. If you don't want to make this selection everytime you can use "synch {option}" at the very beginning.
+ 
+Predefined Functions
+
+ If you want to make an automated task you can use predefined functions.To be able to do that first you should create a file called "predefined.func" and then edit it in a text editor. At the beggining of the file you should enter server adress as "connect {adress:port}" than in the second line you should enter local dir as "dir {your dir}" and than you are free to enter your own automated task. An example for predefined.func file would go like this:
+ 
+ connect 192.168.1.12:1221
+ dir /home/programs
+ cd logs
+ getall
+ cd ./crash_reports
+ synch pull
+ 
+ 
+ 
