@@ -42,20 +42,26 @@ class app(object):
         return(bytes(data, "UTF-8"))
     
     def menu(self):
-        print("\n\t1)Be a Server\n\t2)Client Mode\n\t3)Delete Config(If exists).\n\t4)Run Predefined")
+        print("\n\t1)Be a Server\n\t2)Client Mode\n\t3)Delete Config(If exists).\n\t4)Delete Server Config\n\t5)Run Predefined")
         
         while 1:
             choice = input("\t>>")
             
-            if choice in ["1", "2", "3", "4"]:
+            if choice in ["1", "2", "3", "4", "5"]:
                 
-                if choice == "1" or choice == "2" or choice == "4":
+                if choice == "1" or choice == "2" or choice == "5":
                     return(int(choice))
                 
                 if choice == "3":
                     if not first_run:
                         return int(choice)
                     
+                    else:
+                        print("\tNo config file found")
+                if choice == "4":
+                    if not server.first_run:
+                        return int(choice)
+                        
                     else:
                         print("\tNo config file found")
                 
@@ -235,7 +241,7 @@ class app(object):
                 
                 try:
                     dirchange = self.get_cmd.split(" ")
-                    dirchange = dirchange[1]
+                    dirchange = " ".join(dirchange[1:])
                     
                     if not dirchange[-1] == "/":
                         dirchange += "/"
@@ -245,9 +251,6 @@ class app(object):
                         dirchange = DIR + dirchange
                     
                     try:
-         #               if not dirchange[0]  =="/":
-                 #           dirchange = "/"+dirchange
-                        print(dirchange)
                         os.listdir(dirchange)
                         DIR =dirchange
                         print("local dir is changed as {}".format(DIR))
@@ -270,15 +273,14 @@ class app(object):
                         pass
             
             if "synch" in self.get_cmd :
+                inp = "normal"
+                synchmode = "normal"
                 if not self.get_cmd == "synch":
                     arg = self.get_cmd.split(" ")[1]
                     if arg in ["push", "pull", "abort"]:
                         synchmode = arg
-                else:
-                    synchmode = "normal"
                 if synchmode == "abort":
                     inp = "abort"
-                inp = "normal"
                 pushed = []
                 pulled = []
                 push_count = 0
@@ -335,13 +337,14 @@ class app(object):
                 
                 for i in self.filedic:
                     try:
-                        if not inp == "abort" and not self.filedic[i]["size"] == self.local_filedic[i]:
-                            self.switch_5 = False
-                            self.get(i)
-                            while not self.switch_5:
-                                pass
-                            pulled.append(i)
-                            pull_count += 1
+                        if not self.filedic[i]["size"] == self.local_filedic[i]:
+                            if not inp == "abort":
+                                self.switch_5 = False
+                                self.get(i)
+                                while not self.switch_5:
+                                    pass
+                                pulled.append(i)
+                                pull_count += 1
                 
                     except KeyError:
                         self.switch_5 = False
@@ -558,7 +561,11 @@ def main():
         DIR= girdi
         run.ip = ip
         run.port = port
-        run.connect() 
+        try:
+            run.connect() 
+        except socket.error:
+            print("\tCan't find server")
+            sys.exit()
         s.send(run.tel(json.dumps({"tag":"sync"})))
         t = Thread(target=run.cmd)
         t.start()
@@ -567,19 +574,36 @@ def main():
         os.remove(config_file)
         print("\n\tconfig file has deleted")
         sys.exit()
-
+        
     elif menu_output == 4:
+        os.remove(local_dir + "servconf.conf")
+        print("\n\tserver config has deleted")
+        sys.exit()
+
+    elif menu_output == 5:
         func = predefined()
         if func.loadfile("predefined.func"):
             command_list = func.parse()
             run.script_mode = True
-            ipandport = command_list["connect"]
+            try:
+                ipandport = command_list["connect"]
+            except KeyError:
+                print("Couldnt find any connect info in predefined.func please define it as:\nconnect 192.168.1.1:1221")
+                sys.exit()
             ipandport = ipandport.split(":")
 
             run.ip = ipandport[0]
             run.port = int(ipandport[1])
-            DIR = command_list["dir"]
-            run.connect()
+            try:
+                DIR = command_list["dir"]
+            except KeyError:
+                print("Couldnt find any dir info define it as:\ndir /home/")
+                sys.exit()
+            try:
+                run.connect()
+            except socket.error:
+                print("\tCan't find server")
+                sys.exit()
 
             s.send(run.tel(json.dumps({"tag":"sync"})))
             t = Thread(target=run.cmd)
