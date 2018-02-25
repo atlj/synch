@@ -398,7 +398,7 @@ class app(object):
                             self.get_cmd = self.get_cmd.split(" ")
                             directory = " ".join(self.get_cmd[1:])
                             s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
-                        
+                            continue
                         except IndexError:
                             print("usage: cd [path]")
 
