@@ -13,7 +13,7 @@ try:
 except IOError:
     first_run = True
 
-#TODO ADD DELDIR AND MKDIR ADD HELP FOR PREDEFINED.FUNC ADD DELCONF FOR SERVER
+#TODO ADD DELDIR AND MKDIR
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -273,14 +273,11 @@ class app(object):
                         pass
             
             if "synch" in self.get_cmd :
-                inp = "normal"
                 synchmode = "normal"
                 if not self.get_cmd == "synch":
                     arg = self.get_cmd.split(" ")[1]
                     if arg in ["push", "pull", "abort"]:
                         synchmode = arg
-                if synchmode == "abort":
-                    inp = "abort"
                 pushed = []
                 pulled = []
                 push_count = 0
@@ -295,30 +292,38 @@ class app(object):
                 print("synch started")
                 
                 for i in self.local_filedic:
-                
+                   inp = "normal"
                    try:
                        if not self.local_filedic[i]==self.filedic[i]["size"]:
                            if synchmode == "abort":
                                continue
-                           if not synchmode == "pull":
-                               if not synchmode == "push":
-                                   print("Detected dismatched file:{}\nselect an option push/pull/abort".format(i))
-                                   while 1:
-                                       inp = input(">>")
-                                       if inp in ["push", "pull", "abort"]:
-                                           break
-                               else:
-                                   inp = "push"
+                           if synchmode == "normal":
+                               print("Detected dismatched file:{}\nselect an option push/pull/abort".format(i))
+                               while 1:
+                                   inp = input(">>")
+                                   if inp in ["push", "pull", "abort"]:
+                                       break
                                        
-                               if inp == "push":
-                                   self.switch_6 = False
-                                   self.push(i)
-                                   while not self.switch_6:
-                                       pass
-                                   pushed.append(i)
-                                   push_count += 1
-                               if inp == "abort":
-                                   continue
+                           if inp == "push" or synchmode == "push":
+                               self.switch_6 = False
+                               self.push(i)
+                               while not self.switch_6:
+                                   pass
+                               pushed.append(i)
+                               push_count += 1
+                               continue
+                               
+                           if inp == "pull" or synchmode == "pull":
+                               self.switch_5 = False
+                               self.get(i)
+                               while not self.switch_5:
+                                   pass
+                               pulled.append(i)
+                               pull_count += 1
+                               continue
+                               
+                           if inp == "abort":                          
+                               continue
                 
                    except KeyError:
                         self.switch_6 = False
@@ -336,17 +341,7 @@ class app(object):
                 
                 
                 for i in self.filedic:
-                    try:
-                        if not self.filedic[i]["size"] == self.local_filedic[i]:
-                            if not inp == "abort":
-                                self.switch_5 = False
-                                self.get(i)
-                                while not self.switch_5:
-                                    pass
-                                pulled.append(i)
-                                pull_count += 1
-                
-                    except KeyError:
+                    if not i in self.local_filedic:
                         self.switch_5 = False
                         self.get(i)
                         while not self.switch_5:
@@ -445,7 +440,7 @@ class app(object):
                     except IndexError:
                         print("wrong usage of get use\nget [filename] instead")
                     
-            elif "push" in self.get_cmd:
+            elif self.get_cmd.split(" ")[0] == "push":
                 if not self.get_cmd == "pushall":
                     
                     try:
