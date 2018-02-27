@@ -115,7 +115,7 @@ class server(object):
                         c.send(self.tel(json.dumps({"tag":"info","data":"succes"})))
 
                         if json.loads(c.recv(1024).decode("utf-8"))["data"] == "ready":
-                            print("get with", addr, "started")
+                            print("get with", addr[0], "started")
                             l = dosya.read(1024)
 
                             while l:
@@ -130,12 +130,16 @@ class server(object):
                         print("couldnt find file")
                         c.send(self.tel(json.dumps({"tag":"info","data":"fail"})))
 
-            except json.decoder.JSONDecodeError:
+            except ValueError:
                 print("user {} has disconnected".format(addr[0]))
                 self.create_thread(1)
                 break
             except OSError:
                 print("user {} has  disconnected".format(addr[0]))
+                self.create_thread(1)
+                break
+            except socket.error:
+                print("user {} has disconnected".format(addr[0]))
                 self.create_thread(1)
                 break
 

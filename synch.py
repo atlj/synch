@@ -156,16 +156,19 @@ class app(object):
         socket_object.connect((self.ip, self.port))
         socket_object.send(self.tel(json.dumps({"dir":self.DIRECTORY, "tag":"get", "data":filename})))
         print("Send get for {} waiting for response".format(filename))
-        
-        if json.loads(socket_object.recv(1024).decode("utf-8"))["data"] == "succes":
+        response = json.loads(socket_object.recv(1024).decode("utf-8"))
+        if response["data"] == "succes":
             print("contacted to server transfer is starting.")
             dosya = open(DIR+filename, "wb")
             data = True
             socket_object.send(self.tel(json.dumps({"tag":"info", "data":"ready"})))
             
             while data:
-                data = socket_object.recv(1024)
-                dosya.write(data)
+                try:
+                    data = socket_object.recv(1024)
+                    dosya.write(data)
+                except ValueError:
+                    pass
             
             dosya.close()
             del(socket_object)
@@ -421,7 +424,7 @@ class app(object):
                         num = 10
                     print("- "+ i +num*" "+self.filedic[i]["easysize"])
                     
-            elif "get" in self.get_cmd:
+            elif self.get_cmd.split(" ")[0] == "get":
                 if not self.get_cmd == "getall":
                     
                     try:
