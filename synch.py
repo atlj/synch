@@ -398,10 +398,9 @@ class app(object):
                     
                     if  not "lcd" in self.get_cmd:
                         try:
-                            self.get_cmd = self.get_cmd.split(" ")
-                            directory = " ".join(self.get_cmd[1:])
+                            piece = self.get_cmd.split(" ")
+                            directory = " ".join(piece[1:])
                             s.send(self.tel(json.dumps({"tag":"cd", "data":directory})))
-                            continue
                         except IndexError:
                             print("usage: cd [path]")
 
